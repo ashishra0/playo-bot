@@ -1,7 +1,6 @@
 import asyncio
 import logging
 
-from aiohttp import web
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -10,7 +9,7 @@ from models import Court
 from parser import parse_find_args
 from playo_scraper import DEFAULT_CITY, search_courts
 from whatsapp import post_to_whatsapp, to_whatsapp_text
-from whatsapp_webhook import WEBHOOK_PORT, create_app
+from whatsapp_webhook import poll_whatsapp
 
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -161,15 +160,6 @@ async def cmd_find(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await post_to_whatsapp(to_whatsapp_text(header + body))
 
 
-async def run_webhook_server() -> None:
-    app = create_app()
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", WEBHOOK_PORT)
-    await site.start()
-    log.info("WhatsApp webhook listening on port %d", WEBHOOK_PORT)
-
-
 async def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
         raise SystemExit("TELEGRAM_BOT_TOKEN is not set. See .env.example")
@@ -179,13 +169,11 @@ async def main() -> None:
     tg_app.add_handler(CommandHandler("help", cmd_help))
     tg_app.add_handler(CommandHandler("find", cmd_find))
 
-    await run_webhook_server()
-
     log.info("Bot starting...")
     async with tg_app:
         await tg_app.start()
         await tg_app.updater.start_polling()
-        await asyncio.Event().wait()  # run forever
+        await poll_whatsapp()  # runs forever, polling Green API
 
 
 if __name__ == "__main__":
