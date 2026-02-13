@@ -69,13 +69,13 @@ def _venue_to_court(venue: dict) -> Court:
 
 
 async def _fetch_availability(
-    client: httpx.AsyncClient, venue_id: str, date_str: str, time_filter: str | None
+    client: httpx.AsyncClient, venue_id: str, sport_id: str, date_str: str, time_filter: str | None
 ) -> list[CourtAvailability] | None:
     """Fetch court availability for a venue on a given date.
 
     Returns None on API error, empty list if venue has no online court bookings.
     """
-    url = f"{PLAYO_AVAILABILITY_API}/{venue_id}/{BADMINTON_SPORT_ID}/{date_str}"
+    url = f"{PLAYO_AVAILABILITY_API}/{venue_id}/{sport_id}/{date_str}"
     try:
         resp = await client.get(
             url,
@@ -157,7 +157,7 @@ async def search_courts(params: SearchParams, city: str = DEFAULT_CITY) -> Searc
                 # If date + time given, fetch availability for each venue
                 if params.date and params.time:
                     tasks = [
-                        _fetch_availability(client, c.venue_id, params.date, params.time)
+                        _fetch_availability(client, c.venue_id, sport_id, params.date, params.time)
                         for c in courts
                         if c.venue_id
                     ]
