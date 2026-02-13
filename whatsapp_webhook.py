@@ -71,6 +71,7 @@ async def _delete_notification(client: httpx.AsyncClient, receipt_id: int) -> No
 
 
 async def _handle_notification(client: httpx.AsyncClient, body: dict) -> None:
+    log.info("Notification body: %s", body)
     if body.get("typeWebhook") != "incomingMessageReceived":
         return
 
