@@ -40,8 +40,11 @@ client.on('message_create', async (msg) => {
     if (!msg.body || !msg.body.trim().toLowerCase().startsWith('/find')) return;
 
     try {
+        const chat = await msg.getChat();
+        const chatId = chat.id._serialized;
+
         await axios.post(BOT_INCOMING_URL, {
-            chatId: msg.from,
+            chatId,
             senderName: msg._data.notifyName || 'Someone',
             text: msg.body.trim(),
         });
