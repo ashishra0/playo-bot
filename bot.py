@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from aiohttp import web
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -9,7 +10,7 @@ from models import Court
 from parser import parse_find_args
 from playo_scraper import DEFAULT_CITY, search_courts
 from whatsapp import post_to_whatsapp, to_whatsapp_text
-from whatsapp_webhook import poll_whatsapp
+from whatsapp_webhook import WA_SERVER_PORT, create_app
 
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -169,11 +170,17 @@ async def main() -> None:
     tg_app.add_handler(CommandHandler("help", cmd_help))
     tg_app.add_handler(CommandHandler("find", cmd_find))
 
+    wa_app = create_app()
+    runner = web.AppRunner(wa_app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", WA_SERVER_PORT).start()
+    log.info("WA incoming server listening on port %d", WA_SERVER_PORT)
+
     log.info("Bot starting...")
     async with tg_app:
         await tg_app.start()
         await tg_app.updater.start_polling()
-        await poll_whatsapp()  # runs forever, polling Green API
+        await asyncio.Event().wait()
 
 
 if __name__ == "__main__":

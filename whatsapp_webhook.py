@@ -1,16 +1,14 @@
-import asyncio
 import logging
 
-import httpx
+from aiohttp import web
 
-from config import GREENAPI_INSTANCE_ID, GREENAPI_TOKEN
 from parser import parse_find_args
 from playo_scraper import DEFAULT_CITY, search_courts
 from whatsapp import post_to_whatsapp, to_whatsapp_text
 
 log = logging.getLogger(__name__)
 
-POLL_INTERVAL = 3  # seconds between polls
+WA_SERVER_PORT = 5000
 
 
 def _format_results(courts, params, city: str, exact_match: bool) -> str:
@@ -62,28 +60,18 @@ def _format_results(courts, params, city: str, exact_match: bool) -> str:
     return header + "\n\n".join(lines)
 
 
-async def _delete_notification(client: httpx.AsyncClient, receipt_id: int) -> None:
-    url = f"https://api.greenapi.com/waInstance{GREENAPI_INSTANCE_ID}/deleteNotification/{GREENAPI_TOKEN}/{receipt_id}"
+async def handle_incoming(request: web.Request) -> web.Response:
     try:
-        await client.delete(url)
+        payload = await request.json()
     except Exception:
-        log.warning("Failed to delete notification %d", receipt_id)
+        return web.Response(status=400)
 
-
-async def _handle_notification(client: httpx.AsyncClient, body: dict) -> None:
-    if body.get("typeWebhook") not in ("incomingMessageReceived", "outgoingMessageReceived"):
-        return
-
-    msg_data = body.get("messageData", {})
-    if msg_data.get("typeMessage") != "textMessage":
-        return
-
-    text = msg_data.get("textMessageData", {}).get("textMessage", "").strip()
-    chat_id = body.get("senderData", {}).get("chatId", "")
-    sender = body.get("senderData", {}).get("senderName", "Someone")
+    text = payload.get("text", "").strip()
+    chat_id = payload.get("chatId", "")
+    sender = payload.get("senderName", "Someone")
 
     if not text.lower().startswith("/find"):
-        return
+        return web.Response(status=200)
 
     _, _, arg_text = text.partition(" ")
 
@@ -101,44 +89,31 @@ async def _handle_notification(client: httpx.AsyncClient, body: dict) -> None:
         params = parse_find_args(arg_text)
     except ValueError as exc:
         await post_to_whatsapp(str(exc), chat_id=chat_id)
-        return
+        return web.Response(status=200)
 
-    log.info("WA /find from %s: area=%s date=%s time=%s city=%s", sender, params.area, params.date, params.time, city)
+    log.info("WA /find from %s: area=%s date=%s time=%s city=%s sport=%s",
+             sender, params.area, params.date, params.time, city, params.sport)
 
     try:
         result = await search_courts(params, city=city)
     except Exception:
         log.exception("WA search failed")
         await post_to_whatsapp("Something went wrong while searching. Please try again.", chat_id=chat_id)
-        return
+        return web.Response(status=200)
 
     if not result.courts:
-        await post_to_whatsapp(f"No {params.sport} courts found in {city}. Try a different area or city.", chat_id=chat_id)
-        return
+        await post_to_whatsapp(
+            f"No {params.sport} courts found in {city}. Try a different area or city.",
+            chat_id=chat_id,
+        )
+        return web.Response(status=200)
 
     reply = _format_results(result.courts, params, city, result.exact_area_match)
     await post_to_whatsapp(to_whatsapp_text(reply), chat_id=chat_id)
+    return web.Response(status=200)
 
 
-async def poll_whatsapp() -> None:
-    if not (GREENAPI_INSTANCE_ID and GREENAPI_TOKEN):
-        log.info("Green API not configured, WhatsApp polling disabled")
-        return
-
-    receive_url = f"https://api.greenapi.com/waInstance{GREENAPI_INSTANCE_ID}/receiveNotification/{GREENAPI_TOKEN}"
-    log.info("WhatsApp polling started (every %ds)", POLL_INTERVAL)
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        while True:
-            try:
-                resp = await client.get(receive_url)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data:
-                        receipt_id = data["receiptId"]
-                        await _handle_notification(client, data.get("body", {}))
-                        await _delete_notification(client, receipt_id)
-            except Exception:
-                log.warning("WhatsApp poll error", exc_info=True)
-
-            await asyncio.sleep(POLL_INTERVAL)
+def create_app() -> web.Application:
+    app = web.Application()
+    app.router.add_post("/wa-incoming", handle_incoming)
+    return app
