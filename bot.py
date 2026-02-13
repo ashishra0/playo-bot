@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from aiohttp import web
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -8,6 +9,8 @@ from config import TELEGRAM_BOT_TOKEN
 from models import Court
 from parser import parse_find_args
 from playo_scraper import DEFAULT_CITY, search_courts
+from whatsapp import post_to_whatsapp, to_whatsapp_text
+from whatsapp_webhook import WEBHOOK_PORT, create_app
 
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -155,19 +158,35 @@ async def cmd_find(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         )
 
     await status.edit_text(header + body, parse_mode="Markdown", disable_web_page_preview=True)
+    await post_to_whatsapp(to_whatsapp_text(header + body))
 
 
-def main() -> None:
+async def run_webhook_server() -> None:
+    app = create_app()
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", WEBHOOK_PORT)
+    await site.start()
+    log.info("WhatsApp webhook listening on port %d", WEBHOOK_PORT)
+
+
+async def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
         raise SystemExit("TELEGRAM_BOT_TOKEN is not set. See .env.example")
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("help", cmd_help))
-    app.add_handler(CommandHandler("find", cmd_find))
+
+    tg_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    tg_app.add_handler(CommandHandler("start", cmd_start))
+    tg_app.add_handler(CommandHandler("help", cmd_help))
+    tg_app.add_handler(CommandHandler("find", cmd_find))
+
+    await run_webhook_server()
+
     log.info("Bot starting...")
-    app.run_polling()
+    async with tg_app:
+        await tg_app.start()
+        await tg_app.updater.start_polling()
+        await asyncio.Event().wait()  # run forever
 
 
 if __name__ == "__main__":
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    main()
+    asyncio.run(main())
