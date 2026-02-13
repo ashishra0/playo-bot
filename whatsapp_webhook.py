@@ -65,7 +65,10 @@ async def handle_webhook(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
+        log.warning("Webhook received non-JSON body")
         return web.Response(status=400)
+
+    log.info("Webhook received: typeWebhook=%s", payload.get("typeWebhook"))
 
     # Only handle incoming text messages
     if payload.get("typeWebhook") != "incomingMessageReceived":
