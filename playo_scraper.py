@@ -20,8 +20,8 @@ DEFAULT_CITY = "pune"
 
 SPORT_IDS: dict[str, str] = {
     "badminton": "SP5",
-    "football": "SP1",
-    "cricket": "SP2",
+    "football": "SP2",
+    "cricket": "SP3",
     "basketball": "SP3",
     "tennis": "SP4",
     "squash": "SP6",
