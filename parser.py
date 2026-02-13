@@ -176,6 +176,7 @@ def parse_find_args(text: str) -> SearchParams:
     area_parts: list[str] = []
     time_raw: str | None = None
     date_raw: str | None = None
+    sport_raw: str | None = None
 
     i = 0
     while i < len(tokens):
@@ -195,7 +196,9 @@ def parse_find_args(text: str) -> SearchParams:
                 time_raw = value
             elif key == "date":
                 date_raw = value
-            # city and sport handled by bot.py / ignored
+            elif key == "sport":
+                sport_raw = value
+            # city handled by bot.py / ignored
             i += 1
             continue
 
@@ -239,5 +242,7 @@ def parse_find_args(text: str) -> SearchParams:
         params.time = _normalize_time(time_raw)
     if date_raw:
         params.date = _normalize_date(date_raw)
+    if sport_raw:
+        params.sport = sport_raw.lower()
 
     return params

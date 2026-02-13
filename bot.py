@@ -29,16 +29,16 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "*Usage*\n"
-        "`/find <area> <time> <date>`\n\n"
+        "`/find <area> <time> <date> [sport=<sport>]`\n\n"
         "*Examples*\n"
-        "`/find baner 7pm tomorrow city=pune`\n"
-        "`/find koramangala 6pm today`\n"
+        "`/find baner 7pm tomorrow`\n"
+        "`/find baner 7pm tomorrow sport=football`\n"
         "`/find hsr layout 7:30pm feb12`\n"
-        "`/find indiranagar 8am monday`\n\n"
+        "`/find kothrud 8am monday sport=tennis`\n\n"
         "*Date formats*\n"
         "today, tomorrow, mon-sun, feb10, 10feb, 2026-02-15\n\n"
-        "*City* defaults to Bangalore.\n"
-        "Add `city=pune` (or mumbai, delhi, hyderabad, etc.)\n\n"
+        "*Sports*: badminton (default), football, cricket, tennis, squash, basketball\n\n"
+        "*City* defaults to Pune. Add `city=bangalore` to search elsewhere.\n\n"
         "With time + date, I'll show available courts and prices!",
         parse_mode="Markdown",
     )

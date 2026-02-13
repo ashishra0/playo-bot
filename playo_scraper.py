@@ -16,8 +16,21 @@ from models import Court, CourtAvailability, SearchParams, SlotInfo
 
 log = logging.getLogger(__name__)
 
-BADMINTON_SPORT_ID = "SP5"
-DEFAULT_CITY = "bangalore"
+DEFAULT_CITY = "pune"
+
+SPORT_IDS: dict[str, str] = {
+    "badminton": "SP5",
+    "football": "SP1",
+    "cricket": "SP2",
+    "basketball": "SP3",
+    "tennis": "SP4",
+    "squash": "SP6",
+    "tabletennis": "SP7",
+    "tt": "SP7",
+    "volleyball": "SP8",
+    "swimming": "SP9",
+}
+DEFAULT_SPORT = "badminton"
 
 # City center coordinates for Playo API (lat, lng)
 CITY_COORDS: dict[str, tuple[float, float]] = {
@@ -107,12 +120,19 @@ async def search_courts(params: SearchParams, city: str = DEFAULT_CITY) -> Searc
             f"Unknown city '{city}'. Supported: {', '.join(sorted(CITY_COORDS))}"
         )
 
+    sport_key = (params.sport or DEFAULT_SPORT).lower().replace(" ", "")
+    sport_id = SPORT_IDS.get(sport_key)
+    if not sport_id:
+        raise ValueError(
+            f"Unknown sport '{params.sport}'. Supported: {', '.join(SPORT_IDS)}"
+        )
+
     api_params = {
         "lat": coords[0],
         "lng": coords[1],
         "searchQuery": params.area,
         "category": "venue",
-        "sportId": BADMINTON_SPORT_ID,
+        "sportId": sport_id,
     }
     log.info("Searching Playo API: %s", api_params)
 
