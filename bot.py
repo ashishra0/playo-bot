@@ -127,7 +127,7 @@ async def cmd_find(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
     if not result.courts:
         await status.edit_text(
-            f"No badminton courts found in {city}. Try a different city.",
+            f"No {params.sport} courts found in {city}. Try a different area or city.",
             parse_mode="Markdown",
         )
         return

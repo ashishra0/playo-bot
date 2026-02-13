@@ -113,7 +113,7 @@ async def _handle_notification(client: httpx.AsyncClient, body: dict) -> None:
         return
 
     if not result.courts:
-        await post_to_whatsapp(f"No badminton courts found in {city}. Try a different city.", chat_id=chat_id)
+        await post_to_whatsapp(f"No {params.sport} courts found in {city}. Try a different area or city.", chat_id=chat_id)
         return
 
     reply = _format_results(result.courts, params, city, result.exact_area_match)
