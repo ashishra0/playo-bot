@@ -8,21 +8,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-  whatsapp-service:
-    build: ./whatsapp-service
-    environment:
-      BOT_INCOMING_URL: http://bot:5000/wa-incoming
-    volumes:
-      - whatsapp_session:/app/.wwebjs_auth
-    restart: unless-stopped
-    depends_on:
-      - bot
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-volumes:
-  whatsapp_session:

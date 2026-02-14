@@ -45,7 +45,7 @@ In your Telegram chat with the bot:
 /find hadapsar city=pune
 ```
 
-City defaults to Bangalore. Add `city=pune` (or mumbai, delhi, hyderabad, etc.) to search other cities.
+City defaults to Pune. Add `city=bangalore` (or mumbai, delhi, hyderabad, etc.) to search other cities.
 
 ## Deploy to Hetzner VPS
 
